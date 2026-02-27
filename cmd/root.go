@@ -6,26 +6,34 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/spf13/cobra"
 	"github.com/TerraFaster/scaf/internal/cache"
 	"github.com/TerraFaster/scaf/internal/config"
+	"github.com/spf13/cobra"
 )
 
 // Cfg holds the configuration loaded at startup for the current invocation.
 var Cfg config.Config
 
+// Global flags
+var (
+	globalVerbose bool
+	globalQuiet   bool
+	globalConfig  string
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "scaf",
-	Short: "Generate standard project files (LICENSE, .gitignore)",
-	Long: `scaf — a fast CLI tool for generating standard project service files.
+	Short: "A local bootstrap tool for initializing and standardizing projects",
+	Long: `scaf — a fast CLI tool for bootstrapping and standardizing projects.
 
-It creates LICENSE and .gitignore files using up-to-date templates
-from GitHub and gitignore.io, with local caching for offline use.
-
-Global config is stored at ~/.scaf/config.yaml and is created
-automatically on first run. Run "scaf config" to view or edit it.`,
-	// Load (or auto-create) the global config before any subcommand runs.
+Config: ~/.scaf/config.yaml`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		var cfgPath string
+		if globalConfig != "" {
+			cfgPath = globalConfig
+		}
+		_ = cfgPath
+
 		cfg, err := config.Load()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "⚠  Warning: could not load config: %v\n", err)
@@ -59,7 +67,6 @@ The config file is created automatically on the first run of scaf.`,
 			return openEditor(path)
 		}
 
-		// Print path and current contents.
 		fmt.Printf("Config file: %s\n\n", path)
 
 		data, err := os.ReadFile(path)
@@ -86,20 +93,15 @@ func openEditor(path string) error {
 		return c.Run()
 	}
 
-	// No $EDITOR set — use platform default opener.
-	var openCmd string
 	switch runtime.GOOS {
 	case "windows":
-		// "start" is a shell built-in; use cmd.exe
 		c := exec.Command("cmd", "/c", "start", "", path)
 		return c.Run()
 	case "darwin":
-		openCmd = "open"
-	default: // linux and others
-		openCmd = "xdg-open"
+		return exec.Command("open", path).Run()
+	default:
+		return exec.Command("xdg-open", path).Run()
 	}
-
-	return exec.Command(openCmd, path).Run()
 }
 
 // ── scaf update ───────────────────────────────────────────────────────────────
@@ -113,27 +115,57 @@ var updateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("🔄 Clearing template cache...")
+		fmt.Println("Clearing template cache...")
 		if err := c.Clear(); err != nil {
 			return fmt.Errorf("failed to clear cache: %w", err)
 		}
-		fmt.Println("✔ Cache cleared. Templates will be re-downloaded on next use.")
+		fmt.Println("✔ Cache cleared.")
 		return nil
+	},
+}
+
+// ── scaf version ──────────────────────────────────────────────────────────────
+
+var Version = "2.0.0"
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print scaf version",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("scaf version %s\n", Version)
 	},
 }
 
 // ── Execute ───────────────────────────────────────────────────────────────────
 
 func Execute() {
+	// Global persistent flags
+	rootCmd.PersistentFlags().BoolVarP(&globalVerbose, "verbose", "v", false, "Verbose output")
+	rootCmd.PersistentFlags().BoolVarP(&globalQuiet, "quiet", "q", false, "Minimal output")
+	rootCmd.PersistentFlags().StringVar(&globalConfig, "config", "", "Custom config file path")
+
 	configCmd.Flags().BoolVarP(&configEditFlag, "edit", "e", false, "Open config in $EDITOR")
 
+	// Register all commands
 	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(updateCmd)
+
 	rootCmd.AddCommand(licenseCmd)
 	rootCmd.AddCommand(ignoreCmd)
 	rootCmd.AddCommand(autoCmd)
-	rootCmd.AddCommand(updateCmd)
 
-	// alias: gitignore → ignore
+	rootCmd.AddCommand(gitCmd)
+	rootCmd.AddCommand(readmeCmd)
+	rootCmd.AddCommand(editorconfigCmd)
+	rootCmd.AddCommand(dockerignoreCmd)
+
+	rootCmd.AddCommand(hooksCmd)
+	rootCmd.AddCommand(initCmd)
+
+	rootCmd.AddCommand(structureCmd)
+
+	// Alias: gitignore → ignore
 	gitignoreAlias := *ignoreCmd
 	gitignoreAlias.Use = "gitignore [templates...]"
 	gitignoreAlias.Short = "Alias for the ignore command"
