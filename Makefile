@@ -2,7 +2,7 @@
 
 BINARY_NAME=scaf
 MODULE=github.com/TerraFaster/scaf
-VERSION=2.0.0
+VERSION=2.0.1
 
 # Build
 build:
@@ -10,11 +10,11 @@ build:
 
 # Build for all platforms
 build-all:
-	GOOS=linux   GOARCH=amd64 go build -o bin/$(BINARY_NAME)-linux-amd64 .
-	GOOS=linux   GOARCH=arm64 go build -o bin/$(BINARY_NAME)-linux-arm64 .
-	GOOS=darwin  GOARCH=amd64 go build -o bin/$(BINARY_NAME)-darwin-amd64 .
-	GOOS=darwin  GOARCH=arm64 go build -o bin/$(BINARY_NAME)-darwin-arm64 .
-	GOOS=windows GOARCH=amd64 go build -o bin/$(BINARY_NAME)-windows-amd64.exe .
+	GOOS=linux   GOARCH=amd64 go build -ldflags="-X '$(MODULE)/cmd.Version=$(VERSION)'" -o bin/$(BINARY_NAME)-linux-amd64 .
+	GOOS=linux   GOARCH=arm64 go build -ldflags="-X '$(MODULE)/cmd.Version=$(VERSION)'" -o bin/$(BINARY_NAME)-linux-arm64 .
+	GOOS=darwin  GOARCH=amd64 go build -ldflags="-X '$(MODULE)/cmd.Version=$(VERSION)'" -o bin/$(BINARY_NAME)-darwin-amd64 .
+	GOOS=darwin  GOARCH=arm64 go build -ldflags="-X '$(MODULE)/cmd.Version=$(VERSION)'" -o bin/$(BINARY_NAME)-darwin-arm64 .
+	GOOS=windows GOARCH=amd64 go build -ldflags="-X '$(MODULE)/cmd.Version=$(VERSION)'" -o bin/$(BINARY_NAME)-windows-amd64.exe .
 
 # Test
 test:
