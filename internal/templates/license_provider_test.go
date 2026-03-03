@@ -33,7 +33,9 @@ func TestLicenseListFromAPI(t *testing.T) {
 			{Key: "mit", Name: "MIT License"},
 			{Key: "apache-2.0", Name: "Apache License 2.0"},
 		}
-		json.NewEncoder(w).Encode(licenses)
+		if err := json.NewEncoder(w).Encode(licenses); err != nil {
+			t.Fatalf("failed to encode licenses JSON: %v", err)
+		}
 	}))
 	defer server.Close()
 

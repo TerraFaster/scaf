@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -35,7 +36,7 @@ type FileEntry struct {
 
 // GoFiles returns all files to create for a Go project.
 func GoFiles(opts GoOptions) []FileEntry {
-	year := fmt.Sprintf("%d", time.Now().Year())
+	year := strconv.Itoa(time.Now().Year())
 	name := filepath.Base(opts.ModuleName)
 	if idx := strings.LastIndex(opts.ModuleName, "/"); idx >= 0 {
 		name = opts.ModuleName[idx+1:]

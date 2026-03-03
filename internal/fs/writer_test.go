@@ -8,6 +8,15 @@ import (
 
 func TestWriterCreatesFile(t *testing.T) {
 	dir := t.TempDir()
+	orig, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(orig); err != nil {
+			t.Fatalf("failed to restore cwd: %v", err)
+		}
+	}()
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -29,6 +38,15 @@ func TestWriterCreatesFile(t *testing.T) {
 
 func TestWriterForceOverwrite(t *testing.T) {
 	dir := t.TempDir()
+	orig, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(orig); err != nil {
+			t.Fatalf("failed to restore cwd: %v", err)
+		}
+	}()
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -47,6 +65,15 @@ func TestWriterForceOverwrite(t *testing.T) {
 
 func TestWriterBackupMode(t *testing.T) {
 	dir := t.TempDir()
+	orig, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(orig); err != nil {
+			t.Fatalf("failed to restore cwd: %v", err)
+		}
+	}()
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -81,13 +108,22 @@ func TestWriterBackupMode(t *testing.T) {
 
 func TestWriterPathTraversalBlocked(t *testing.T) {
 	dir := t.TempDir()
+	orig, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(orig); err != nil {
+			t.Fatalf("failed to restore cwd: %v", err)
+		}
+	}()
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}
 
 	w := NewWriter()
 	opts := WriteOptions{Force: true}
-	err := w.Write("../../etc/passwd", "malicious", opts)
+	err = w.Write("../../etc/passwd", "malicious", opts)
 	if err == nil {
 		t.Fatal("expected path traversal to be blocked")
 	}

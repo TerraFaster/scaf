@@ -53,9 +53,18 @@ func TestApplyDryRun(t *testing.T) {
 
 func TestApplyCreatesFiles(t *testing.T) {
 	tmpDir := t.TempDir()
-	orig, _ := os.Getwd()
-	defer os.Chdir(orig)
-	os.Chdir(tmpDir)
+	orig, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working dir: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(orig); err != nil {
+			t.Fatalf("failed to restore working dir: %v", err)
+		}
+	}()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir to tmpDir: %v", err)
+	}
 
 	tmpl, _ := Get("minimal")
 	if err := Apply(tmpl, false); err != nil {

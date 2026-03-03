@@ -11,8 +11,8 @@ const defaultTTLHours = 168 // 7 days
 
 // Cache manages file-based caching in ~/.scaf/cache/
 type Cache struct {
-	baseDir    string
-	ttlHours   int
+	baseDir  string
+	ttlHours int
 }
 
 // New creates a Cache using the default directory (~/.scaf/cache).
@@ -96,10 +96,22 @@ func (c *Cache) keyPath(namespace, key string) string {
 }
 
 func sanitizeKey(key string) string {
+	// Preserve dots only when between alphanumeric characters (e.g. "2.0").
+	// Otherwise replace with underscore to block path traversal like "..".
 	result := make([]byte, len(key))
 	for i := 0; i < len(key); i++ {
 		ch := key[i]
-		if isAlphanumeric(ch) || ch == '-' || ch == '_' || ch == '.' {
+		if ch == '.' {
+			prevAlnum := i > 0 && isAlphanumeric(key[i-1])
+			nextAlnum := i+1 < len(key) && isAlphanumeric(key[i+1])
+			if prevAlnum && nextAlnum {
+				result[i] = ch
+				continue
+			}
+			result[i] = '_'
+			continue
+		}
+		if isAlphanumeric(ch) || ch == '-' || ch == '_' {
 			result[i] = ch
 		} else {
 			result[i] = '_'

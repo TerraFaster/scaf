@@ -55,7 +55,7 @@ func (p *IgnoreProvider) List() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch gitignore list: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -112,7 +112,7 @@ func (p *IgnoreProvider) fetchFromAPI(names []string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch gitignore templates: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("gitignore.io API returned %d for templates %s", resp.StatusCode, joined)

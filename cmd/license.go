@@ -3,22 +3,23 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/TerraFaster/scaf/internal/fs"
 	"github.com/TerraFaster/scaf/internal/templates"
 	"github.com/TerraFaster/scaf/internal/ui"
+	"github.com/spf13/cobra"
 )
 
 var (
-	licenseAuthor  string
-	licenseYear    string
-	licenseForce   bool
-	licenseBackup  bool
-	licenseDryRun  bool
-	licenseYes     bool
+	licenseAuthor string
+	licenseYear   string
+	licenseForce  bool
+	licenseBackup bool
+	licenseDryRun bool
+	licenseYes    bool
 )
 
 var licenseCmd = &cobra.Command{
@@ -108,7 +109,7 @@ func runLicense(cmd *cobra.Command, args []string) error {
 		year = Cfg.DefaultYear
 	}
 	if year == "" {
-		year = fmt.Sprintf("%d", time.Now().Year())
+		year = strconv.Itoa(time.Now().Year())
 	}
 
 	// Replace placeholders

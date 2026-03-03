@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/TerraFaster/scaf/internal/cache"
+	"github.com/lithammer/fuzzysearch/fuzzy"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -72,15 +74,33 @@ func (p *LicenseProvider) List() ([]LicenseInfo, error) {
 		}
 	}
 
-	// Fetch from GitHub
+	// Fetch from GitHub; fall back to embedded licenses if network fails
 	resp, err := p.httpClient.Get(githubLicensesURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch licenses list: %w", err)
+		// Build list from embedded licenses
+		var licenses []LicenseInfo
+		for k := range embeddedLicenses {
+			name := licenseNames[k]
+			if name == "" {
+				name = cases.Title(language.Und).String(strings.ReplaceAll(k, "-", " "))
+			}
+			licenses = append(licenses, LicenseInfo{Key: k, Name: name})
+		}
+		return licenses, nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GitHub API returned %d", resp.StatusCode)
+		// Attempt embedded fallback on non-OK status
+		var licenses []LicenseInfo
+		for k := range embeddedLicenses {
+			name := licenseNames[k]
+			if name == "" {
+				name = cases.Title(language.Und).String(strings.ReplaceAll(k, "-", " "))
+			}
+			licenses = append(licenses, LicenseInfo{Key: k, Name: name})
+		}
+		return licenses, nil
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -115,15 +135,24 @@ func (p *LicenseProvider) Get(key string) (string, error) {
 		return cached, nil
 	}
 
+	// Check embedded licenses before hitting network
+	if body, ok := embeddedLicenses[key]; ok {
+		return body, nil
+	}
+
 	// Fetch from GitHub
 	url := fmt.Sprintf("%s/%s", githubLicensesURL, key)
 	resp, err := p.httpClient.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch license %s: %w", key, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
+		// If not found remotely, but present in embedded, return it
+		if body, ok := embeddedLicenses[key]; ok {
+			return body, nil
+		}
 		return "", fmt.Errorf("license %q not found", key)
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -141,6 +170,10 @@ func (p *LicenseProvider) Get(key string) (string, error) {
 	}
 
 	if detail.Body == "" {
+		// fallback to embedded if available
+		if body, ok := embeddedLicenses[key]; ok {
+			return body, nil
+		}
 		return "", fmt.Errorf("empty license body for %s", key)
 	}
 
