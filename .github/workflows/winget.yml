@@ -1,16 +1,21 @@
 name: WinGet Release
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
 
 jobs:
   winget:
-    name: Submit to WinGet
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: windows-latest
+
     steps:
       - name: Submit WinGet PR
         uses: vedantmgoyal9/winget-releaser@v2
         with:
           identifier: TerraFaster.scaf
           token: ${{ secrets.WINGET_TOKEN }}
+          release-tag: ${{ github.event.workflow_run.head_branch }}
+  
